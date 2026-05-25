@@ -12,13 +12,21 @@ type SheetsResponse = {
 };
 
 export async function GET() {
-  const apiKey = process.env.GOOGLE_SHEETS_API_KEY;
-  const spreadsheetId = process.env.GOOGLE_SHEETS_SPREADSHEET_ID;
-  const range = process.env.GOOGLE_SHEETS_RANGE || 'vendas_nuvemshop';
+  const apiKey =
+    process.env.GOOGLE_SHEETS_API_KEY || process.env.NEXT_PUBLIC_GOOGLE_SHEETS_API_KEY;
+  const spreadsheetId =
+    process.env.GOOGLE_SHEETS_SPREADSHEET_ID || process.env.NEXT_PUBLIC_SPREADSHEET_ID;
+  const range =
+    process.env.GOOGLE_SHEETS_RANGE ||
+    process.env.NEXT_PUBLIC_SHEET_NAME ||
+    'vendas_nuvemshop';
 
   if (!apiKey || !spreadsheetId) {
     return NextResponse.json(
-      { error: 'Missing GOOGLE_SHEETS_API_KEY or GOOGLE_SHEETS_SPREADSHEET_ID' },
+      {
+        error:
+          'Missing Google Sheets env vars. Set GOOGLE_SHEETS_API_KEY + GOOGLE_SHEETS_SPREADSHEET_ID (or the NEXT_PUBLIC_ equivalents).',
+      },
       { status: 500 }
     );
   }
