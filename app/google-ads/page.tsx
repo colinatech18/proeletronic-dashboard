@@ -48,7 +48,7 @@ export default function GoogleAdsPage() {
       <PageHeader title="Google Ads" description="Performance, funil de eventos e atribuição real." />
 
       <div className="mb-6">
-        <GlobalFilters />
+        <GlobalFilters hideSourceFilter hideStatusFilter />
       </div>
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
@@ -76,7 +76,7 @@ export default function GoogleAdsPage() {
 
       <section className="mt-6">
         <Card title="Google vs Nuvemshop (utm_source=google)">
-          <ComparisonTable data={comparison} />
+          <ComparisonTable data={comparison} platformLabel="google" />
         </Card>
       </section>
 

@@ -15,7 +15,12 @@ const PRESETS: { value: PeriodPreset; label: string }[] = [
   { value: 'custom', label: 'Personalizado' },
 ];
 
-export function GlobalFilters() {
+type GlobalFiltersProps = {
+  hideSourceFilter?: boolean;
+  hideStatusFilter?: boolean;
+};
+
+export function GlobalFilters({ hideSourceFilter = false, hideStatusFilter = false }: GlobalFiltersProps) {
   const { filters, setPeriod, setUtmSource, setStatusPagamento, orders } = useDashboardData();
 
   const sources = useMemo(
@@ -71,19 +76,23 @@ export function GlobalFilters() {
         </div>
       )}
 
-      <Select
-        value={filters.utmSource ?? ''}
-        onChange={(v) => setUtmSource(v || null)}
-        options={[{ value: '', label: 'Todas sources' }, ...sources.map((s) => ({ value: s, label: s }))]}
-      />
-      <Select
-        value={filters.statusPagamento ?? ''}
-        onChange={(v) => setStatusPagamento(v || null)}
-        options={[
-          { value: '', label: 'Todos status' },
-          ...statuses.map((s) => ({ value: s, label: s })),
-        ]}
-      />
+      {!hideSourceFilter && (
+        <Select
+          value={filters.utmSource ?? ''}
+          onChange={(v) => setUtmSource(v || null)}
+          options={[{ value: '', label: 'Todas sources' }, ...sources.map((s) => ({ value: s, label: s }))]}
+        />
+      )}
+      {!hideStatusFilter && (
+        <Select
+          value={filters.statusPagamento ?? ''}
+          onChange={(v) => setStatusPagamento(v || null)}
+          options={[
+            { value: '', label: 'Todos status' },
+            ...statuses.map((s) => ({ value: s, label: s })),
+          ]}
+        />
+      )}
     </div>
   );
 }

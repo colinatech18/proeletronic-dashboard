@@ -3,7 +3,7 @@
 import type { ComparisonRow } from '@/lib/metrics';
 import { formatNumber } from '@/lib/metrics';
 
-export function ComparisonTable({ data }: { data: ComparisonRow[] }) {
+export function ComparisonTable({ data, platformLabel = 'meta' }: { data: ComparisonRow[]; platformLabel?: string }) {
   if (data.length === 0) {
     return <div className="py-8 text-center text-sm text-slate-400 dark:text-slate-500">Sem dados para comparar.</div>;
   }
@@ -15,7 +15,7 @@ export function ComparisonTable({ data }: { data: ComparisonRow[] }) {
     <div>
       <div className="mb-3 grid grid-cols-3 gap-2 text-xs">
         <Pill label="Meta purchases" value={formatNumber(totalMeta)} accent="violet" />
-        <Pill label="Pedidos Nuvemshop (utm=meta)" value={formatNumber(totalNs)} accent="primary" />
+        <Pill label={`Pedidos Nuvemshop (utm=${platformLabel})`} value={formatNumber(totalNs)} accent="primary" />
         <Pill
           label="Divergência"
           value={`${gap > 0 ? '+' : ''}${formatNumber(gap)}`}
@@ -28,7 +28,7 @@ export function ComparisonTable({ data }: { data: ComparisonRow[] }) {
             <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
               <th className="px-2 py-2 font-medium">Data</th>
               <th className="px-2 py-2 text-right font-medium">Meta (purchase)</th>
-              <th className="px-2 py-2 text-right font-medium">Nuvemshop (utm=meta)</th>
+              <th className="px-2 py-2 text-right font-medium">Nuvemshop (utm={platformLabel})</th>
               <th className="px-2 py-2 text-right font-medium">Δ</th>
             </tr>
           </thead>

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import type { ProductRow } from '@/lib/metrics';
-import { formatBRL, formatNumber, isPaid, splitItems } from '@/lib/metrics';
+import { formatBRL, formatNumber, formatPercent, isPaid, splitItems } from '@/lib/metrics';
 import type { Order } from '@/lib/types';
 
 type SortDir = 'asc' | 'desc';
@@ -66,6 +66,12 @@ export function ProductTable({ data, orders }: { data: ProductRow[]; orders?: Or
             <Th onClick={() => handleSort('faturamento')} align="right">
               Faturamento{arrow('faturamento')}
             </Th>
+            <Th onClick={() => handleSort('share')} align="right">
+              % Fat.{arrow('share')}
+            </Th>
+            <Th onClick={() => handleSort('clientesUnicos')} align="right">
+              Clientes únicos{arrow('clientesUnicos')}
+            </Th>
             {showCustomers && <th className="px-2 py-2 text-right font-medium" aria-label="Ações" />}
           </tr>
         </thead>
@@ -76,6 +82,12 @@ export function ProductTable({ data, orders }: { data: ProductRow[]; orders?: Or
               <td className="px-2 py-2.5 text-right text-slate-600 dark:text-slate-300">{formatNumber(p.quantidade)}</td>
               <td className="px-2 py-2.5 text-right text-slate-600 dark:text-slate-300">{formatBRL(p.valorMedio)}</td>
               <td className="px-2 py-2.5 text-right font-medium text-slate-900 dark:text-slate-100">{formatBRL(p.faturamento)}</td>
+              <td className="px-2 py-2.5 text-right text-slate-500 dark:text-slate-400">
+                {formatPercent(p.share, 1)}
+              </td>
+              <td className="px-2 py-2.5 text-right text-slate-500 dark:text-slate-400">
+                {formatNumber(p.clientesUnicos)}
+              </td>
               {showCustomers && (
                 <td className="px-2 py-2.5 text-right">
                   <button

@@ -155,28 +155,47 @@ export function paymentMethodShare(orders: Order[]): PaymentShare[] {
     .sort((a, b) => b.pedidos - a.pedidos);
 }
 
-export type ProductRow = { item: string; quantidade: number; faturamento: number; valorMedio: number };
+export type ProductRow = {
+  item: string;
+  quantidade: number;
+  faturamento: number;
+  valorMedio: number;
+  share: number;
+  clientesUnicos: number;
+};
 
 export function splitItems(raw: string): string[] {
   return raw.split('|').map((p) => p.trim()).filter(Boolean);
 }
 
 export function topProducts(orders: Order[], limit?: number): ProductRow[] {
-  const map = new Map<string, ProductRow>();
-  for (const o of orders.filter(isPaid)) {
+  const paid = orders.filter(isPaid);
+  const totalFaturamento = paid.reduce((acc, o) => acc + o.valorTotal, 0);
+
+  const map = new Map<string, { item: string; quantidade: number; faturamento: number; customerKeys: Set<string> }>();
+  for (const o of paid) {
     if (!o.item) continue;
     const products = splitItems(o.item);
     if (products.length === 0) continue;
     const valuePerProduct = o.valorTotal / products.length;
+    const customerKey = (o.email || o.telefone || '').toLowerCase().trim();
     for (const product of products) {
-      const cur = map.get(product) ?? { item: product, quantidade: 0, faturamento: 0, valorMedio: 0 };
+      const cur = map.get(product) ?? { item: product, quantidade: 0, faturamento: 0, customerKeys: new Set() };
       cur.quantidade += 1;
       cur.faturamento += valuePerProduct;
+      if (customerKey) cur.customerKeys.add(customerKey);
       map.set(product, cur);
     }
   }
   const rows = Array.from(map.values())
-    .map((r) => ({ ...r, valorMedio: r.quantidade > 0 ? r.faturamento / r.quantidade : 0 }))
+    .map((r) => ({
+      item: r.item,
+      quantidade: r.quantidade,
+      faturamento: r.faturamento,
+      valorMedio: r.quantidade > 0 ? r.faturamento / r.quantidade : 0,
+      share: totalFaturamento > 0 ? r.faturamento / totalFaturamento : 0,
+      clientesUnicos: r.customerKeys.size,
+    }))
     .sort((a, b) => b.faturamento - a.faturamento);
   return typeof limit === 'number' ? rows.slice(0, limit) : rows;
 }
@@ -310,6 +329,7 @@ export type MetaSummary = {
   cliques: number;
   ctr: number;
   cpc: number;
+  addToCart: number;
   purchase: number;
   receita: number;
   roas: number;
@@ -319,6 +339,7 @@ export function summarizeMeta(rows: MetaAdRow[]): MetaSummary {
   const investimento = rows.reduce((a, r) => a + r.custo, 0);
   const impressoes = rows.reduce((a, r) => a + r.impressoes, 0);
   const cliques = rows.reduce((a, r) => a + r.cliques, 0);
+  const addToCart = rows.reduce((a, r) => a + r.addToCart, 0);
   const purchase = rows.reduce((a, r) => a + r.purchase, 0);
   const receita = rows.reduce((a, r) => a + r.receita, 0);
   return {
@@ -327,6 +348,7 @@ export function summarizeMeta(rows: MetaAdRow[]): MetaSummary {
     cliques,
     ctr: impressoes > 0 ? cliques / impressoes : 0,
     cpc: cliques > 0 ? investimento / cliques : 0,
+    addToCart,
     purchase,
     receita,
     roas: investimento > 0 ? receita / investimento : 0,
@@ -538,6 +560,19 @@ export function calcCAC(investimento: number, pedidos: number): number {
 // Retorna ROAS: faturamento / investimento (0 se investimento = 0)
 export function calcROAS(faturamento: number, investimento: number): number {
   return investimento > 0 ? faturamento / investimento : 0;
+}
+
+// Taxa de abandono de carrinho via funil de ads: (addToCart - purchase) / addToCart
+export function calcCartAbandonmentRate(addToCart: number, purchase: number): number {
+  return addToCart > 0 ? (addToCart - purchase) / addToCart : 0;
+}
+
+// LTV simples: receita total dos clientes únicos / quantidade de clientes únicos
+export function calcLTV(orders: Order[]): number {
+  const customerList = customers(orders);
+  if (customerList.length === 0) return 0;
+  const totalRevenue = customerList.reduce((a, c) => a + c.totalGasto, 0);
+  return totalRevenue / customerList.length;
 }
 
 // ============================== AGRUPAMENTO ==============================

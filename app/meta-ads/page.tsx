@@ -48,7 +48,7 @@ export default function MetaAdsPage() {
       <PageHeader title="Meta Ads" description="Performance, funil de eventos e atribuição real." />
 
       <div className="mb-6">
-        <GlobalFilters />
+        <GlobalFilters hideSourceFilter hideStatusFilter />
       </div>
 
       <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
