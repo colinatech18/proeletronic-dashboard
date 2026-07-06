@@ -75,7 +75,17 @@ const META_NUMERIC = new Set<keyof MetaAdRow>([
 const META_DATE = new Set<keyof MetaAdRow>(['extractionDate', 'date']);
 
 export function parseSheetRows(rows: string[][]): Order[] {
-  return parseGeneric<Order>(rows, ORDER_HEADER_MAP, ORDER_NUMERIC, new Set(['data']), blankOrder);
+  const orders = parseGeneric<Order>(rows, ORDER_HEADER_MAP, ORDER_NUMERIC, new Set(['data']), blankOrder);
+  return orders.map((o) => ({
+    ...o,
+    statusPagamento: normalizeStatus(o.statusPagamento),
+  }));
+}
+
+function normalizeStatus(status: string): string {
+  const s = status.toLowerCase().trim();
+  if (s === 'autorizado' || s === 'authorized') return 'pago';
+  return status;
 }
 
 export function parseMetaRows(rows: string[][]): MetaAdRow[] {
