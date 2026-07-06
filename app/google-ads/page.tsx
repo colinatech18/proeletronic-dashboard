@@ -1,106 +1,176 @@
+'use client';
+
+import { useMemo } from 'react';
 import { Card } from '../components/Card';
+import { ComparisonTable } from '../components/ComparisonTable';
 import { Funnel } from '../components/Funnel';
+import { GlobalFilters } from '../components/GlobalFilters';
+import { LoadingPlaceholder } from '../components/LoadingPlaceholder';
 import { MetaInvestmentChart } from '../components/MetaInvestmentChart';
 import { MetricCard } from '../components/MetricCard';
 import { PageHeader } from '../components/PageHeader';
-
-const EMPTY_FUNNEL = [
-  { stage: 'view_item', value: 0 },
-  { stage: 'add_to_cart', value: 0 },
-  { stage: 'view_cart', value: 0 },
-  { stage: 'begin_checkout', value: 0 },
-  { stage: 'add_shipping_info', value: 0 },
-  { stage: 'add_payment_info', value: 0 },
-  { stage: 'purchase', value: 0 },
-];
+import { useDashboardData } from '../providers/DataProvider';
+import {
+  campaigns,
+  formatBRL,
+  formatNumber,
+  formatPercent,
+  googleVsNuvemshop,
+  isGoogleSource,
+  metaFunnel,
+  metaInvestmentByDay,
+  summarizeMeta,
+  utmBreakdown,
+} from '@/lib/metrics';
+import type { CampaignRow } from '@/lib/metrics';
 
 export default function GoogleAdsPage() {
+  const { filteredGoogleAds, filteredOrders, loading } = useDashboardData();
+
+  const summary = useMemo(() => summarizeMeta(filteredGoogleAds), [filteredGoogleAds]);
+  const funnel = useMemo(() => metaFunnel(filteredGoogleAds), [filteredGoogleAds]);
+  const series = useMemo(() => metaInvestmentByDay(filteredGoogleAds), [filteredGoogleAds]);
+  const camps = useMemo(() => campaigns(filteredGoogleAds), [filteredGoogleAds]);
+  const comparison = useMemo(
+    () => googleVsNuvemshop(filteredGoogleAds, filteredOrders),
+    [filteredGoogleAds, filteredOrders]
+  );
+  const googleOrders = useMemo(
+    () => filteredOrders.filter((o) => isGoogleSource(o.utmSource)),
+    [filteredOrders]
+  );
+  const googleUtms = useMemo(() => utmBreakdown(googleOrders), [googleOrders]);
+
+  if (loading) return <LoadingPlaceholder />;
+
   return (
     <>
-      <PageHeader title="Google Ads" description="Performance e funil de Google Ads." />
+      <PageHeader title="Google Ads" description="Performance, funil de eventos e atribuição real." />
 
-      <ComingSoonBanner />
+      <div className="mb-6">
+        <GlobalFilters />
+      </div>
 
-      <section className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
-        <MetricCard label="Investimento" value="—" hint="aguardando integração" accent="emerald" />
-        <MetricCard label="Impressões" value="—" hint="aguardando integração" accent="primary" />
-        <MetricCard label="Cliques" value="—" hint="aguardando integração" accent="violet" />
-        <MetricCard label="CTR" value="—" hint="aguardando integração" accent="amber" />
-        <MetricCard label="CPC médio" value="—" hint="aguardando integração" accent="sky" />
+      <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <MetricCard label="Investimento" value={formatBRL(summary.investimento)} accent="emerald" />
+        <MetricCard label="Impressões" value={formatNumber(summary.impressoes)} accent="primary" />
+        <MetricCard label="Cliques" value={formatNumber(summary.cliques)} accent="violet" />
+        <MetricCard label="CTR" value={formatPercent(summary.ctr, 2)} accent="amber" />
+        <MetricCard label="CPC médio" value={formatBRL(summary.cpc)} accent="sky" />
       </section>
 
       <section className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card title="Funil de eventos" className="lg:col-span-1">
-          <Funnel data={EMPTY_FUNNEL} />
+          <Funnel data={funnel} />
         </Card>
         <Card title="Investimento por dia" className="lg:col-span-2">
-          <MetaInvestmentChart data={[]} />
+          <MetaInvestmentChart data={series} />
         </Card>
       </section>
 
       <section className="mt-6">
         <Card title="Campanhas">
-          <EmptyTable
-            columns={['Campanha', 'Impressões', 'Cliques', 'Custo', 'CTR', 'CPC', 'View item', 'Add cart', 'Purchase']}
-          />
+          <CampaignsTable data={camps} />
         </Card>
       </section>
 
       <section className="mt-6">
         <Card title="Google vs Nuvemshop (utm_source=google)">
-          <EmptyTable columns={['Data', 'Google (purchase)', 'Nuvemshop (utm=google)', 'Δ']} />
+          <ComparisonTable data={comparison} />
         </Card>
       </section>
 
       <section className="mt-6">
-        <Card title="UTMs reais (Nuvemshop)">
-          <EmptyTable columns={['Campaign', 'Content', 'Pedidos reais', 'Faturamento real']} />
+        <Card title="UTMs reais (Nuvemshop)" action={<HintTag />}>
+          <GoogleUtmTable data={googleUtms} />
         </Card>
       </section>
     </>
   );
 }
 
-function ComingSoonBanner() {
+function HintTag() {
   return (
-    <div className="rounded-xl border border-primary-300 bg-primary-50 px-4 py-3 text-sm dark:border-primary-500/30 dark:bg-primary-500/10">
-      <div className="flex items-center gap-2">
-        <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-primary-500 text-white">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <polyline points="12 6 12 12 16 14" />
-          </svg>
-        </span>
-        <div>
-          <div className="font-semibold text-primary-700 dark:text-primary-200">Em breve</div>
-          <div className="text-xs text-primary-700/80 dark:text-primary-200/70">
-            Aguardando integração com a aba <code className="rounded bg-primary-100 px-1 dark:bg-primary-500/20">google_ads</code>. A estrutura abaixo está pronta para receber os dados.
-          </div>
-        </div>
+    <span className="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-slate-500 dark:bg-slate-700/60 dark:text-slate-400">
+      utm_source=google
+    </span>
+  );
+}
+
+function CampaignsTable({ data }: { data: CampaignRow[] }) {
+  if (data.length === 0) {
+    return (
+      <div className="py-8 text-center text-sm text-slate-400 dark:text-slate-500">
+        Sem campanhas no período.
       </div>
+    );
+  }
+  return (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[860px] text-sm">
+        <thead>
+          <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
+            <th className="px-2 py-2 font-medium">Campanha</th>
+            <th className="px-2 py-2 text-right font-medium">Impressões</th>
+            <th className="px-2 py-2 text-right font-medium">Cliques</th>
+            <th className="px-2 py-2 text-right font-medium">Custo</th>
+            <th className="px-2 py-2 text-right font-medium">CTR</th>
+            <th className="px-2 py-2 text-right font-medium">CPC</th>
+            <th className="px-2 py-2 text-right font-medium">View item</th>
+            <th className="px-2 py-2 text-right font-medium">Add cart</th>
+            <th className="px-2 py-2 text-right font-medium">Purchase</th>
+          </tr>
+        </thead>
+        <tbody>
+          {data.map((c) => (
+            <tr key={c.campaign} className="border-b border-slate-100 dark:border-slate-800/60">
+              <td className="px-2 py-2.5 text-slate-700 dark:text-slate-200">{c.campaign}</td>
+              <td className="px-2 py-2.5 text-right text-slate-600 dark:text-slate-300">{formatNumber(c.impressoes)}</td>
+              <td className="px-2 py-2.5 text-right text-slate-600 dark:text-slate-300">{formatNumber(c.cliques)}</td>
+              <td className="px-2 py-2.5 text-right text-slate-900 dark:text-slate-100">{formatBRL(c.custo)}</td>
+              <td className="px-2 py-2.5 text-right text-slate-600 dark:text-slate-300">{formatPercent(c.ctr, 2)}</td>
+              <td className="px-2 py-2.5 text-right text-slate-600 dark:text-slate-300">{formatBRL(c.cpc)}</td>
+              <td className="px-2 py-2.5 text-right text-slate-500 dark:text-slate-400">{formatNumber(c.viewItem)}</td>
+              <td className="px-2 py-2.5 text-right text-slate-500 dark:text-slate-400">{formatNumber(c.addToCart)}</td>
+              <td className="px-2 py-2.5 text-right text-emerald-600 dark:text-emerald-300">{formatNumber(c.purchase)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
 
-function EmptyTable({ columns }: { columns: string[] }) {
+function GoogleUtmTable({ data }: { data: import('@/lib/metrics').UtmRow[] }) {
+  if (data.length === 0) {
+    return (
+      <div className="py-8 text-center text-sm text-slate-400 dark:text-slate-500">
+        Nenhum pedido com utm_source=google no período.
+      </div>
+    );
+  }
   return (
     <div className="overflow-x-auto">
-      <table className="w-full text-sm">
+      <table className="w-full min-w-[640px] text-sm">
         <thead>
           <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wider text-slate-500 dark:border-slate-700 dark:text-slate-400">
-            {columns.map((c) => (
-              <th key={c} className="px-2 py-2 font-medium">
-                {c}
-              </th>
-            ))}
+            <th className="px-2 py-2 font-medium">Campaign</th>
+            <th className="px-2 py-2 font-medium">Content</th>
+            <th className="px-2 py-2 text-right font-medium">Pedidos reais</th>
+            <th className="px-2 py-2 text-right font-medium">Faturamento real</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td colSpan={columns.length} className="px-2 py-8 text-center text-sm text-slate-400 dark:text-slate-500">
-              Sem dados.
-            </td>
-          </tr>
+          {data.map((r, i) => (
+            <tr key={`${r.campaign}-${r.content}-${i}`} className="border-b border-slate-100 dark:border-slate-800/60">
+              <td className="px-2 py-2.5 text-slate-700 dark:text-slate-200">{r.campaign}</td>
+              <td className="px-2 py-2.5 text-slate-500 dark:text-slate-400">{r.content}</td>
+              <td className="px-2 py-2.5 text-right text-slate-600 dark:text-slate-300">{formatNumber(r.pedidos)}</td>
+              <td className="px-2 py-2.5 text-right font-medium text-slate-900 dark:text-slate-100">
+                {formatBRL(r.faturamento)}
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
     </div>

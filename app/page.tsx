@@ -35,7 +35,7 @@ import {
 import type { Order } from '@/lib/types';
 
 export default function VisaoGeralPage() {
-  const { filteredOrders, filteredMeta, loading } = useDashboardData();
+  const { filteredOrders, filteredMeta, filteredGoogleAds, loading } = useDashboardData();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   const summary = useMemo(() => summarize(filteredOrders), [filteredOrders]);
@@ -50,7 +50,15 @@ export default function VisaoGeralPage() {
 
   const metaSummary = useMemo(() => summarizeMeta(filteredMeta), [filteredMeta]);
   const hasMeta = filteredMeta.length > 0;
-  const investimentoTotal = metaSummary.investimento;
+
+  const googleSummary = useMemo(() => summarizeMeta(filteredGoogleAds), [filteredGoogleAds]);
+  const hasGoogle = filteredGoogleAds.length > 0;
+
+  const investimentoMeta = metaSummary.investimento;
+  const investimentoGoogle = googleSummary.investimento;
+  const investimentoTotal = investimentoMeta + investimentoGoogle;
+  const hasAdsData = hasMeta || hasGoogle;
+
   const cac = calcCAC(investimentoTotal, summary.pedidos);
   const roas = calcROAS(summary.faturamento, investimentoTotal);
 
@@ -92,19 +100,21 @@ export default function VisaoGeralPage() {
         <MetricCard
           label="Investimento Total"
           value={formatBRL(investimentoTotal)}
-          hint={hasMeta ? 'Meta Ads' : 'sem dados de ads'}
+          hint={hasAdsData
+            ? `Meta: ${formatBRL(investimentoMeta)} · Google: ${formatBRL(investimentoGoogle)}`
+            : 'sem dados de ads'}
           accent="rose"
         />
         <MetricCard
           label="CAC"
           value={formatBRL(cac)}
-          hint={hasMeta ? 'investimento ÷ pedidos' : 'sem dados de ads'}
+          hint={hasAdsData ? 'investimento ÷ pedidos' : 'sem dados de ads'}
           accent="orange"
         />
         <MetricCard
           label="ROAS"
           value={`${roas.toFixed(2)}x`}
-          hint={hasMeta ? 'faturamento ÷ investimento' : 'sem dados de ads'}
+          hint={hasAdsData ? 'faturamento ÷ investimento' : 'sem dados de ads'}
           accent="sky"
         />
       </section>

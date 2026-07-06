@@ -9,7 +9,7 @@ import {
   useMemo,
   useState,
 } from 'react';
-import { filterByPeriod, filterMetaByPeriod } from '@/lib/metrics';
+import { filterByPeriod, filterGoogleByPeriod, filterMetaByPeriod } from '@/lib/metrics';
 import type { GlobalFilters, MetaAdRow, Order, Period } from '@/lib/types';
 
 type VendasApi = {
@@ -27,11 +27,22 @@ type MetaApi = {
   error?: string;
 };
 
+type GoogleApi = {
+  googleAds?: Array<Omit<MetaAdRow, 'date' | 'extractionDate'> & {
+    date: string | null;
+    extractionDate: string | null;
+  }>;
+  fetchedAt?: string;
+  error?: string;
+};
+
 type DataContextValue = {
   orders: Order[];
   meta: MetaAdRow[];
+  googleAds: MetaAdRow[];
   filteredOrders: Order[];
   filteredMeta: MetaAdRow[];
+  filteredGoogleAds: MetaAdRow[];
   loading: boolean;
   refreshing: boolean;
   error: string | null;
@@ -56,6 +67,7 @@ const AUTO_REFRESH_MS = 5 * 60 * 1000;
 export function DataProvider({ children }: { children: ReactNode }) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [meta, setMeta] = useState<MetaAdRow[]>([]);
+  const [googleAds, setGoogleAds] = useState<MetaAdRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,15 +78,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (silent) setRefreshing(true);
     else setLoading(true);
     try {
-      const [vRes, mRes] = await Promise.all([
+      const [vRes, mRes, gRes] = await Promise.all([
         fetch('/api/sheets/vendas', { cache: 'no-store' }),
         fetch('/api/sheets/meta', { cache: 'no-store' }),
+        fetch('/api/sheets/google-ads', { cache: 'no-store' }),
       ]);
       const vendasData = (await vRes.json()) as VendasApi;
       const metaData = (await mRes.json()) as MetaApi;
+      const googleData = (await gRes.json()) as GoogleApi;
 
-      const errors = [vendasData.error, metaData.error].filter(Boolean);
-      if (errors.length === 2) {
+      const errors = [vendasData.error, metaData.error, googleData.error].filter(Boolean);
+      if (errors.length === 3) {
         setError(errors.join(' · '));
         return;
       }
@@ -90,6 +104,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
             ...m,
             date: m.date ? new Date(m.date) : null,
             extractionDate: m.extractionDate ? new Date(m.extractionDate) : null,
+          }))
+        );
+      }
+      if (googleData.googleAds) {
+        setGoogleAds(
+          googleData.googleAds.map((g) => ({
+            ...g,
+            date: g.date ? new Date(g.date) : null,
+            extractionDate: g.extractionDate ? new Date(g.extractionDate) : null,
           }))
         );
       }
@@ -131,11 +154,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return res;
   }, [meta, filters]);
 
+  const filteredGoogleAds = useMemo(() => {
+    let res = filterGoogleByPeriod(googleAds, filters.period);
+    if (filters.utmSource) {
+      const u = filters.utmSource.toLowerCase();
+      res = res.filter((r) => (r.utmSource || '').toLowerCase() === u);
+    }
+    return res;
+  }, [googleAds, filters]);
+
   const value: DataContextValue = {
     orders,
     meta,
+    googleAds,
     filteredOrders,
     filteredMeta,
+    filteredGoogleAds,
     loading,
     refreshing,
     error,

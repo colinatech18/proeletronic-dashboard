@@ -49,6 +49,9 @@ export type MetaAdRow = {
   receita: number;
 };
 
+// GoogleAdRow tem estrutura idêntica a MetaAdRow (mesmas colunas na planilha)
+export type GoogleAdRow = MetaAdRow;
+
 export type PeriodPreset =
   | '7d'
   | '30d'

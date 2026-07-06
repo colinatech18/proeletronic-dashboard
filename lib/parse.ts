@@ -82,6 +82,11 @@ export function parseMetaRows(rows: string[][]): MetaAdRow[] {
   return parseGeneric<MetaAdRow>(rows, META_HEADER_MAP, META_NUMERIC, META_DATE, blankMeta);
 }
 
+// Google Ads — mesma estrutura de colunas que meta_ads
+export function parseGoogleRows(rows: string[][]): MetaAdRow[] {
+  return parseGeneric<MetaAdRow>(rows, META_HEADER_MAP, META_NUMERIC, META_DATE, blankMeta);
+}
+
 function parseGeneric<T>(
   rows: string[][],
   headerMap: Record<string, keyof T>,

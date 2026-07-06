@@ -457,6 +457,41 @@ export function ordersByDay(orders: Order[]): OrdersDayPoint[] {
   return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
 }
 
+// ============================== GOOGLE ADS ==============================
+
+const GOOGLE_SOURCE_KEYS = ['google', 'cpc', 'google_ads'];
+
+export function isGoogleSource(utmSource: string): boolean {
+  const s = (utmSource || '').toLowerCase();
+  return GOOGLE_SOURCE_KEYS.some((k) => s.includes(k));
+}
+
+// filterGoogleByPeriod — reutiliza filterMetaByPeriod pois GoogleAdRow = MetaAdRow
+export { filterMetaByPeriod as filterGoogleByPeriod };
+
+export function googleVsNuvemshop(google: MetaAdRow[], orders: Order[]): ComparisonRow[] {
+  const map = new Map<string, ComparisonRow>();
+
+  for (const g of google) {
+    if (!g.date) continue;
+    const key = isoDate(g.date);
+    const cur = map.get(key) ?? { date: key, metaPurchases: 0, nuvemshopOrders: 0 };
+    cur.metaPurchases += g.purchase;
+    map.set(key, cur);
+  }
+
+  const googleOrders = orders.filter((o) => isPaid(o) && isGoogleSource(o.utmSource));
+  for (const o of googleOrders) {
+    if (!o.data) continue;
+    const key = isoDate(o.data);
+    const cur = map.get(key) ?? { date: key, metaPurchases: 0, nuvemshopOrders: 0 };
+    cur.nuvemshopOrders += 1;
+    map.set(key, cur);
+  }
+
+  return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
 // ============================== FORMATTERS ==============================
 
 function isoDate(d: Date): string {
