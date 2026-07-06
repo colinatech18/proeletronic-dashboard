@@ -90,7 +90,7 @@ export default function VisaoGeralPage() {
         <MetricCard
           label="Pedidos"
           value={formatNumber(summary.pedidos)}
-          hint="apenas pagos"
+          hint="no período selecionado"
           accent="primary"
         />
         <MetricCard

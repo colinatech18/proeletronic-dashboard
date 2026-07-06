@@ -72,10 +72,10 @@ export type Summary = {
 };
 
 export function summarize(orders: Order[]): Summary {
-  const paid = orders.filter(isPaid);
-  const faturamento = paid.reduce((acc, o) => acc + o.valorTotal, 0);
-  const pedidos = paid.length;
+  const faturamento = orders.reduce((acc, o) => acc + o.valorTotal, 0);
+  const pedidos = orders.length;
   const ticketMedio = pedidos > 0 ? faturamento / pedidos : 0;
+  const paid = orders.filter(isPaid);
   const taxaAprovacao = orders.length > 0 ? paid.length / orders.length : 0;
   return { faturamento, pedidos, ticketMedio, taxaAprovacao };
 }
@@ -84,7 +84,7 @@ export type RevenuePoint = { date: string; faturamento: number; pedidos: number 
 
 export function revenueByDay(orders: Order[]): RevenuePoint[] {
   const map = new Map<string, RevenuePoint>();
-  for (const o of orders.filter(isPaid)) {
+  for (const o of orders) {
     if (!o.data) continue;
     const key = isoDate(o.data);
     const cur = map.get(key) ?? { date: key, faturamento: 0, pedidos: 0 };
@@ -122,7 +122,7 @@ export type RevenueShare = { source: string; faturamento: number; share: number 
 export function revenueShareBySource(orders: Order[]): RevenueShare[] {
   const map = new Map<string, number>();
   let total = 0;
-  for (const o of orders.filter(isPaid)) {
+  for (const o of orders) {
     const source = (o.utmSource || 'direto').toLowerCase();
     map.set(source, (map.get(source) ?? 0) + o.valorTotal);
     total += o.valorTotal;
@@ -140,12 +140,11 @@ export type PaymentShare = { metodo: string; pedidos: number; share: number };
 
 export function paymentMethodShare(orders: Order[]): PaymentShare[] {
   const map = new Map<string, number>();
-  const paid = orders.filter(isPaid);
-  for (const o of paid) {
+  for (const o of orders) {
     const m = (o.metodoPagamento || 'desconhecido').toLowerCase();
     map.set(m, (map.get(m) ?? 0) + 1);
   }
-  const total = paid.length;
+  const total = orders.length;
   return Array.from(map.entries())
     .map(([metodo, pedidos]) => ({
       metodo,
@@ -169,11 +168,10 @@ export function splitItems(raw: string): string[] {
 }
 
 export function topProducts(orders: Order[], limit?: number): ProductRow[] {
-  const paid = orders.filter(isPaid);
-  const totalFaturamento = paid.reduce((acc, o) => acc + o.valorTotal, 0);
+  const totalFaturamento = orders.reduce((acc, o) => acc + o.valorTotal, 0);
 
   const map = new Map<string, { item: string; quantidade: number; faturamento: number; customerKeys: Set<string> }>();
-  for (const o of paid) {
+  for (const o of orders) {
     if (!o.item) continue;
     const products = splitItems(o.item);
     if (products.length === 0) continue;
@@ -204,7 +202,7 @@ export type StateRow = { estado: string; pedidos: number; faturamento: number };
 
 export function salesByState(orders: Order[]): StateRow[] {
   const map = new Map<string, StateRow>();
-  for (const o of orders.filter(isPaid)) {
+  for (const o of orders) {
     const estado = (o.estado || '—').toUpperCase().trim();
     const cur = map.get(estado) ?? { estado, pedidos: 0, faturamento: 0 };
     cur.pedidos += 1;
@@ -218,7 +216,7 @@ export type CityRow = { cidade: string; estado: string; pedidos: number; faturam
 
 export function salesByCity(orders: Order[]): CityRow[] {
   const map = new Map<string, CityRow>();
-  for (const o of orders.filter(isPaid)) {
+  for (const o of orders) {
     const cidade = (o.cidade || '—').trim();
     const estado = (o.estado || '').toUpperCase().trim();
     const key = `${cidade}__${estado}`;
@@ -243,7 +241,7 @@ export type CustomerRow = {
 
 export function customers(orders: Order[]): CustomerRow[] {
   const map = new Map<string, CustomerRow>();
-  for (const o of orders.filter(isPaid)) {
+  for (const o of orders) {
     const key = (o.email || o.telefone || o.nome || '').toLowerCase().trim();
     if (!key) continue;
     const cur =
@@ -277,7 +275,7 @@ export type UtmRow = {
 
 export function utmBreakdown(orders: Order[]): UtmRow[] {
   const map = new Map<string, UtmRow>();
-  for (const o of orders.filter(isPaid)) {
+  for (const o of orders) {
     const source = (o.utmSource || 'direto').toLowerCase();
     const campaign = o.utmCampaign || '—';
     const medium = o.utmMedium || '—';
