@@ -84,7 +84,7 @@ export function parseSheetRows(rows: string[][]): Order[] {
 
 function normalizeStatus(status: string): string {
   const s = status.toLowerCase().trim();
-  if (s === 'autorizado' || s === 'authorized') return 'pago';
+  if (s === 'autorizado' || s === 'authorized') return 'Pago';
   return status;
 }
 
